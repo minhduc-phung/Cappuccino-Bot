@@ -39,7 +39,6 @@ def get_top_5(username):
     message_return += f"Top 5 plays of **{username}**:\n\n"
     embed_image_url = api.search(query=username).users.data[0].avatar_url
     for i in range(len(top5)):
-        print(i)
         score = top5[i]
         stats = score.statistics
         score_stats = f"[{stats.count_300}/{stats.count_100}/{stats.count_50}/{stats.count_miss}]"

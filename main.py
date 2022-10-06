@@ -4,7 +4,9 @@ from os import getenv
 from dotenv import load_dotenv
 import osuAPIService
 
-client = discord.Client()
+intents = discord.Intents.default()
+intents.message_content = True
+client = discord.Client(intents=intents)
 
 PREFIX = "c."
 
@@ -88,13 +90,13 @@ async def on_message(message):
             await message.channel.send(message_sent)
 
         if command.startswith('osutopplay'):
-            message_sent = "Error :/" # If no conditions met
+            message_sent = "Error :/"  # If no conditions met
             if len(command) == len('osutopplay'):
                 await message.add_reaction(EMOJI_BAD_COMMAND)
                 message_sent = "**Usage**: osutopplay {**username**}"
                 ed = ''
             elif command[len('osutopplay')] == ' ':
-                username = command[(len('osutopplay')+1):]
+                username = command[(len('osutopplay') + 1):]
                 if username == '':
                     await message.add_reaction(EMOJI_BAD_COMMAND)
                     ed = ''
@@ -108,8 +110,8 @@ async def on_message(message):
                 embed.description = ed
                 await message.channel.send(embed=embed)
 
-        if command.startswith('osutop') and not(command.startswith('osutopplay')):
-            message_sent = "Error :/" # If no conditions met
+        if command.startswith('osutop') and not (command.startswith('osutopplay')):
+            message_sent = "Error :/"  # If no conditions met
             ei = ''
             if len(command) == 6:
                 await message.add_reaction(EMOJI_BAD_COMMAND)
@@ -132,13 +134,13 @@ async def on_message(message):
                 await message.channel.send(embed=embed)
 
         if command.startswith('osurecent'):
-            message_sent = "Error :/" # If no conditions met
+            message_sent = "Error :/"  # If no conditions met
             if len(command) == len('osurecent'):
                 await message.add_reaction(EMOJI_BAD_COMMAND)
                 message_sent = "**Usage**: osurecent {**username**}"
                 ed = ''
             elif command[len('osurecent')] == ' ':
-                username = command[(len('osurecent')+1):]
+                username = command[(len('osurecent') + 1):]
                 if username == '':
                     await message.add_reaction(EMOJI_BAD_COMMAND)
                     ed = ''
@@ -151,6 +153,10 @@ async def on_message(message):
                 embed = discord.Embed()
                 embed.description = ed
                 await message.channel.send(embed=embed)
+    else:
+        if "727" in message.content:
+            await message.channel.send("WYSI")
+
 
 def main():
     load_dotenv()
