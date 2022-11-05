@@ -5,7 +5,7 @@ load_dotenv()
 api = OssapiV2(int(getenv('OSUAPI_ID')), getenv('OSUAPI_TOKEN'))
 
 print(api.beatmapset_discussion_posts().discussions[0].message_type)
-print(api.user_recent_activity(12092800)[0].created_at)
+print(api.user_recent_activity(15493367)[0].created_at)
 print(api.spotlights()[0].name)
 print(api.user_beatmaps(user_id=12092800, type_="most_played")[0].count)
 print(api.user_kudosu(user_id=3178418)[0].action)

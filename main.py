@@ -3,6 +3,7 @@ import random
 from os import getenv
 from dotenv import load_dotenv
 import osuAPIService
+import tenorAPIService
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -155,7 +156,8 @@ async def on_message(message):
                 await message.channel.send(embed=embed)
     else:
         if "727" in message.content:
-            await message.channel.send("WYSI")
+            await message.channel.send("<a:WYSI:818240754866585630>")
+            await message.channel.send(tenorAPIService.get_random_gif("wysi"))
 
 
 def main():
