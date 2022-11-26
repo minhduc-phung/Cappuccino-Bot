@@ -1,9 +1,13 @@
+import asyncio
+
 import discord
 import random
 from os import getenv
 from dotenv import load_dotenv
 import osuAPIService
 import tenorAPIService
+import englishWordsService
+import time
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -18,11 +22,15 @@ HELP_TEXT = f'''I am Cappuccino, a bot made by Lulu x Pix.
 I am currently under huge development (unless my creator is lazy).
 My prefix is **{PREFIX}**!
 Here are all of the commands currently available:
-*\*Note [required] {{optional}} *
+*\* [required] {{optional}} *
 - **help**: Show this entire message
 - **cuu**: Hiện danh sách câu lệnh của bot
-- **hello**
+- **bruh**: Bruh
+- **chatting**: Send the "Chatting" embed
+- **gif {{keyword}}**: Get a GIF from Tenor
+- **hello**: Say hello to Cappuccino!
 - **roll** {{range}}: Get a random number from 1 to 100, unless range specified
+- **scramble**: Guess the scrambled word
 - **osutopplay** [username]: Get the osu! top play of the user specified
 - **osutop** [username]: Get the osu! top 5 plays of the user specified
 - **osurecent** [username]: Get the osu! recent play of the user specified
@@ -31,15 +39,19 @@ Here are all of the commands currently available:
 CUU_TEXT = f'''Đây là Cappuccino, một bot tạo bởi Lulu x Pix.
 Bot đang được phát triển nên sẽ chưa có nhiều tính năng.
 Các câu lệnh bắt đầu bằng **{PREFIX}**!
-Các câu lệnh hiện đang có (toàn bộ output của các câu lệnh đều là tiếng Anh):
-*Lưu ý: \* [bắt buộc] {{không bắt buộc}} *
+Các câu lệnh hiện đang có (**toàn bộ đầu ra của các câu lệnh đều là tiếng Anh**):
+*\* [bắt buộc] {{không bắt buộc}} *
 - **help**: Show command list
 - **cuu**: Hiện tin nhắn này
-- **hello**
-- **roll** {{range}}: Trả về một số từ 1-100, hoặc từ 1 tới số được ghi trong lệnh
-- **osutopplay** [username]: (osu!) Trả về top play của người chơi có username được ghi trong lệnh
-- **osutop** [username]: (osu!) Trả về 5 top plays của người chơi được ghi trong lệnh
-- **osurecent** [username]: (osu!) Trả về lượt chơi gần đây nhất của người chơi được ghi trong lệnh
+- **bruh**: Bruh
+- **chatting**: Gửi embed "Chatting"
+- **gif {{từ khoá}}**: Tìm kiếm GIF trên Tenor
+- **hello**: Chào hỏi!
+- **roll** {{n}}: Trả về một số từ 1 tới n, mặc định n=100
+- **scramble**: Sắp xếp lại từ tiếng Anh
+- **osutopplay** [tên người chơi]: (osu!) Trả về top play của người chơi có username được ghi trong lệnh
+- **osutop** [tên người chơi]: (osu!) Trả về 5 top plays của người chơi được ghi trong lệnh
+- **osurecent** [tên người chơi]: (osu!) Trả về lượt chơi gần đây nhất của người chơi được ghi trong lệnh
 '''
 
 
@@ -69,6 +81,11 @@ async def on_message(message):
         if command == 'hello':
             await message.add_reaction(EMOJI_GOOD_COMMAND)
             await message.channel.send('Please to meet you. :purple_heart:')
+
+        if command.startswith('gif'):
+            await message.add_reaction(EMOJI_GOOD_COMMAND)
+            search_term = command[4:]
+            await message.channel.send(tenorAPIService.get_random_gif(search_term))
 
         if command.startswith('roll ') or command == 'roll':
             await message.add_reaction(EMOJI_GOOD_COMMAND)
@@ -154,9 +171,33 @@ async def on_message(message):
                 embed = discord.Embed()
                 embed.description = ed
                 await message.channel.send(embed=embed)
+
+        if command.startswith('chatting'):
+            await message.add_reaction(EMOJI_GOOD_COMMAND)
+            await message.channel.send(tenorAPIService.get_chatting_gif())
+
+        if command.startswith('scramble'):
+            await message.add_reaction(EMOJI_GOOD_COMMAND)
+            word = englishWordsService.get_random_lower_word()
+            scrambled_word = englishWordsService.get_scrambled_word(word)
+            await message.channel.send('Unscramble this word: **' + scrambled_word + '**')
+            await message.channel.send('You have 30 seconds to answer.')
+
+            def check(m):
+                return m.content.lower() == word and m.channel == message.channel
+
+            try:
+                msg = await client.wait_for('message', check=check, timeout=30.0)
+            except asyncio.TimeoutError:
+                await message.channel.send('No one answered correctly. The word was **' + word + '**.')
+            else:
+                await message.channel.send(msg.author.mention + ' guessed the word! The word was **' + word + '**.')
+
+        if command.startswith('bruh'):
+            await message.add_reaction(EMOJI_GOOD_COMMAND)
+            await message.channel.send(file=discord.File('bruh.gif'))
     else:
         if "727" in message.content:
-            await message.channel.send("<a:WYSI:818240754866585630>")
             await message.channel.send(tenorAPIService.get_random_gif("wysi"))
 
 

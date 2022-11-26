@@ -23,3 +23,6 @@ def get_random_gif(search_term):
         return res['media'][0]['gif']['url']
     else:
         return None
+
+def get_chatting_gif():
+    return "https://media.tenor.com/9nZ5fdxEyQQAAAAi/chatting-twich-emote-xqc-asmongold-chat-tyler1.gif"
