@@ -13,7 +13,6 @@ lmt = 10
 def get_random_gif(search_term):
     r = requests.get(
         "https://g.tenor.com/v1/search?q=%s&key=%s&limit=%s" % (search_term, apikey, lmt))
-    print(r.status_code)
     if r.status_code == 200:
         # load the GIFs using the urls for the smaller GIF sizes
         gifs = json.loads(r.content)

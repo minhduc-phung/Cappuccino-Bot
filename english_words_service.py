@@ -2,7 +2,7 @@ import english_words
 import random
 
 
-def get_scrambled_word(word):
+def scramble_word(word):
     word = list(word)
     random.shuffle(word)
     return ''.join(word)
