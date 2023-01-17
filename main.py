@@ -1,210 +1,136 @@
 import asyncio
-
-import discord
 import random
 from os import getenv
+
+import discord
+from discord import SlashCommandGroup
+from discord.ext import pages
 from dotenv import load_dotenv
-import osuAPIService
-import tenorAPIService
-import englishWordsService
-import time
 
-intents = discord.Intents.default()
-intents.message_content = True
-client = discord.Client(intents=intents)
+import english_words_service
+import osuAPI_service
+import tenor_API_service
+from text_resources import HELP_TEXTS
 
-PREFIX = "c."
-
-EMOJI_GOOD_COMMAND = '✅'
-EMOJI_BAD_COMMAND = '❌'
-
-HELP_TEXT = f'''I am Cappuccino, a bot made by Lulu x Pix.
-I am currently under huge development (unless my creator is lazy).
-My prefix is **{PREFIX}**!
-Here are all of the commands currently available:
-*\* [required] {{optional}} *
-- **help**: Show this entire message
-- **cuu**: Hiện danh sách câu lệnh của bot
-- **bruh**: Bruh
-- **chatting**: Send the "Chatting" embed
-- **gif {{keyword}}**: Get a GIF from Tenor
-- **hello**: Say hello to Cappuccino!
-- **roll** {{range}}: Get a random number from 1 to 100, unless range specified
-- **scramble**: Guess the scrambled word
-- **osutopplay** [username]: Get the osu! top play of the user specified
-- **osutop** [username]: Get the osu! top 5 plays of the user specified
-- **osurecent** [username]: Get the osu! recent play of the user specified
-'''
-
-CUU_TEXT = f'''Đây là Cappuccino, một bot tạo bởi Lulu x Pix.
-Bot đang được phát triển nên sẽ chưa có nhiều tính năng.
-Các câu lệnh bắt đầu bằng **{PREFIX}**!
-Các câu lệnh hiện đang có (**toàn bộ đầu ra của các câu lệnh đều là tiếng Anh**):
-*\* [bắt buộc] {{không bắt buộc}} *
-- **help**: Show command list
-- **cuu**: Hiện tin nhắn này
-- **bruh**: Bruh
-- **chatting**: Gửi embed "Chatting"
-- **gif {{từ khoá}}**: Tìm kiếm GIF trên Tenor
-- **hello**: Chào hỏi!
-- **roll** {{n}}: Trả về một số từ 1 tới n, mặc định n=100
-- **scramble**: Sắp xếp lại từ tiếng Anh
-- **osutopplay** [tên người chơi]: (osu!) Trả về top play của người chơi có username được ghi trong lệnh
-- **osutop** [tên người chơi]: (osu!) Trả về 5 top plays của người chơi được ghi trong lệnh
-- **osurecent** [tên người chơi]: (osu!) Trả về lượt chơi gần đây nhất của người chơi được ghi trong lệnh
-'''
+bot = discord.Bot(intents=discord.Intents.all())
 
 
-@client.event
+@bot.event
 async def on_ready():
-    activity = discord.Game(name="c.help | c.cuu!")
-    await client.change_presence(status=discord.Status.online, activity=activity)
-    print('{0.user} is now online.'.format(client))
+    activity = discord.Activity(name="/help", type=discord.ActivityType.playing)
+    await bot.change_presence(status=discord.Status.online, activity=activity)
+    print('{0.user} is now online.'.format(bot))
 
 
-@client.event
+@bot.event
+async def on_member_join(member):
+    await member.send("Good morning, " + member.name + "!" + "\nWelcome to the server.")
+
+
+@bot.event
 async def on_message(message):
-    if message.author == client.user:
+    if message.author == bot.user:
         return
-    if message.content.startswith(PREFIX):
+    if "727" in message.content:
+        await message.channel.send(tenor_API_service.get_random_gif("wysi"))
 
-        command = message.content[2:]
 
-        if command == 'help':
-            await message.add_reaction(EMOJI_GOOD_COMMAND)
-            await message.channel.send(HELP_TEXT)
+@bot.command(description="Send the bot's latency")
+async def ping(ctx):
+    await ctx.respond(f"Pinged! My latency is **{bot.latency * 1000:.0f}ms**.")
 
-        if command == 'cuu':
-            await message.add_reaction(EMOJI_GOOD_COMMAND)
-            await message.channel.send(CUU_TEXT)
 
-        if command == 'hello':
-            await message.add_reaction(EMOJI_GOOD_COMMAND)
-            await message.channel.send('Please to meet you. :purple_heart:')
+@bot.command(description="Shows the list of commands")
+async def help(ctx):
+    await ctx.respond(HELP_TEXTS.get('en'))
 
-        if command.startswith('gif'):
-            await message.add_reaction(EMOJI_GOOD_COMMAND)
-            search_term = command[4:]
-            await message.channel.send(tenorAPIService.get_random_gif(search_term))
 
-        if command.startswith('roll ') or command == 'roll':
-            await message.add_reaction(EMOJI_GOOD_COMMAND)
-            roll_range = str(message.content)[7:len(str(message.content))]
-            if roll_range.isdigit():
-                roll_range = int(roll_range)
-                roll_value = random.randrange(1, roll_range + 1)
-                message_sent = str(message.author)[0:-5] + " rolled " + str(
-                    roll_value) + " point(s)"
-                if roll_value == 727: message_sent += '\nWYSI'
-                if '69' in str(roll_value): message_sent += '\nNice.'
-                await message.channel.send(message_sent)
-            else:
-                message_sent = str(message.author)[0:-5] + " rolled " + str(random.randrange(1, 101)) + " point(s)"
-                await message.channel.send(message_sent)
+@bot.command(description="Xem các câu lệnh có sẵn")
+async def cuu(ctx):
+    await ctx.respond(HELP_TEXTS.get('vi'))
 
-        if command.startswith('pull '):
-            message_received = str(message.content)
-            message_sent = message_received[8:(len(message_received))]
-            await message.channel.send(message_sent)
 
-        if command.startswith('osutopplay'):
-            message_sent = "Error :/"  # If no conditions met
-            if len(command) == len('osutopplay'):
-                await message.add_reaction(EMOJI_BAD_COMMAND)
-                message_sent = "**Usage**: osutopplay {**username**}"
-                ed = ''
-            elif command[len('osutopplay')] == ' ':
-                username = command[(len('osutopplay') + 1):]
-                if username == '':
-                    await message.add_reaction(EMOJI_BAD_COMMAND)
-                    ed = ''
-                    message_sent = "**Missing argument**: Player username.\n **Usage**: osutopplay {**username**}"
-                else:
-                    await message.add_reaction(EMOJI_GOOD_COMMAND)
-                    message_sent, ed = osuAPIService.get_top_play(username)
-            await message.channel.send(message_sent)
-            if ed != '':
-                embed = discord.Embed()
-                embed.description = ed
-                await message.channel.send(embed=embed)
+@bot.command(description="Get a random gif from tenor")
+async def gif(ctx, search_term: discord.Option(str)):
+    await ctx.respond(tenor_API_service.get_random_gif(search_term))
 
-        if command.startswith('osutop') and not (command.startswith('osutopplay')):
-            message_sent = "Error :/"  # If no conditions met
-            ei = ''
-            if len(command) == 6:
-                await message.add_reaction(EMOJI_BAD_COMMAND)
-                message_sent = "**Usage**: osutop {**username**}"
-                ed = ei = ''
-            elif command[6] == ' ':
-                username = command[7:]
-                if username == '':
-                    await message.add_reaction(EMOJI_BAD_COMMAND)
-                    ed = ei = ''
-                    message_sent = "**Missing argument**: Player username.\n **Usage**: osutop {**username**}"
-                else:
-                    await message.add_reaction(EMOJI_GOOD_COMMAND)
-                    message_sent, ed, ei = osuAPIService.get_top_5(username)
-            await message.channel.send(message_sent)
-            if ed != '':
-                embed = discord.Embed()
-                embed.description = ed
-                embed.set_thumbnail(url=ei)
-                await message.channel.send(embed=embed)
 
-        if command.startswith('osurecent'):
-            message_sent = "Error :/"  # If no conditions met
-            if len(command) == len('osurecent'):
-                await message.add_reaction(EMOJI_BAD_COMMAND)
-                message_sent = "**Usage**: osurecent {**username**}"
-                ed = ''
-            elif command[len('osurecent')] == ' ':
-                username = command[(len('osurecent') + 1):]
-                if username == '':
-                    await message.add_reaction(EMOJI_BAD_COMMAND)
-                    ed = ''
-                    message_sent = "**Missing argument**: Player username.\n **Usage**: osurecent {**username**}"
-                else:
-                    await message.add_reaction(EMOJI_GOOD_COMMAND)
-                    message_sent, ed = osuAPIService.get_recent(username)
-            await message.channel.send(message_sent)
-            if ed != '':
-                embed = discord.Embed()
-                embed.description = ed
-                await message.channel.send(embed=embed)
+@bot.command(description="Roll a random number. Default range is 1-100")
+async def roll(ctx, max_range: discord.Option(int, default=100, description="The max range of the random number")):
+    roll_value = random.randint(1, max_range)
+    response = ""
+    if roll_value == 727:
+        response += "When you see it!\n"
+    response += f"{ctx.author.mention} rolled {roll_value}"
+    await ctx.respond(response)
 
-        if command.startswith('chatting'):
-            await message.add_reaction(EMOJI_GOOD_COMMAND)
-            await message.channel.send(tenorAPIService.get_chatting_gif())
 
-        if command.startswith('scramble'):
-            await message.add_reaction(EMOJI_GOOD_COMMAND)
-            word = englishWordsService.get_random_lower_word()
-            scrambled_word = englishWordsService.get_scrambled_word(word)
-            await message.channel.send('Unscramble this word: **' + scrambled_word + '**')
-            await message.channel.send('You have 30 seconds to answer.')
+osu = SlashCommandGroup("osu", "osu! related commands")
 
-            def check(m):
-                return m.content.lower() == word and m.channel == message.channel
 
-            try:
-                msg = await client.wait_for('message', check=check, timeout=30.0)
-            except asyncio.TimeoutError:
-                await message.channel.send('No one answered correctly. The word was **' + word + '**.')
-            else:
-                await message.channel.send(msg.author.mention + ' guessed the word! The word was **' + word + '**.')
+@osu.command(description="Get the osu! top plays of a user")
+async def top(ctx: discord.ApplicationContext, username: discord.Option(str, description="The osu! username")):
+    message, pages_to_send = osuAPI_service.get_top_50(username)
+    if pages_to_send is None:
+        await ctx.respond(message)
+        return
+    paginator = pages.Paginator(pages_to_send)
+    await paginator.respond(ctx.interaction)
 
-        if command.startswith('bruh'):
-            await message.add_reaction(EMOJI_GOOD_COMMAND)
-            await message.channel.send(file=discord.File('bruh.gif'))
+
+@osu.command(description="Get the osu! most recent play of a user")
+async def recent(ctx: discord.ApplicationContext, username: discord.Option(str, description="The osu! username")):
+    message, ed = osuAPI_service.get_recent(username)
+    if ed == "":
+        await ctx.respond(message)
+        return
+    embed = discord.Embed()
+    embed.description = ed
+    await ctx.respond(message, embed=embed)
+
+
+@osu.command(description="Get the osu! user's top play")
+async def best(ctx: discord.ApplicationContext, username: discord.Option(str, description="The osu! username")):
+    message, ed, ei = osuAPI_service.get_top_play(username)
+    if ed is None:
+        await ctx.respond(message)
+        return
+    embed = discord.Embed()
+    embed.description = ed
+    embed.set_thumbnail(url=ei)
+    await ctx.respond(message, embed=embed)
+
+
+bot.add_application_command(osu)
+
+
+@bot.command(description="Try to guess a scrambled word together!")
+async def scramble(ctx):
+    answer = english_words_service.get_random_lower_word()
+    scrambled = english_words_service.scramble_word(answer)
+    await ctx.respond("Unscramble this word: **" + scrambled + "**\n You have 30 seconds.")
+    try:
+        msg = await bot.wait_for("message", check=lambda m: m.content.lower() == answer, timeout=30)
+    except asyncio.TimeoutError:
+        await ctx.respond(f"Time's up! The answer was **{answer}**.")
     else:
-        if "727" in message.content:
-            await message.channel.send(tenorAPIService.get_random_gif("wysi"))
+        await ctx.respond(f"{msg.author.mention} guessed the word! The answer was **{answer}**.")
+
+
+@bot.command(description="Chatting")
+async def chatting(ctx):
+    await ctx.respond(tenor_API_service.get_chatting_gif())
+
+
+@bot.command(description="bruh")
+async def bruh(ctx):
+    await ctx.respond(file=discord.File('bruh.gif'))
 
 
 def main():
     load_dotenv()
-    client.run(getenv('BOT_TOKEN'))
+    bot.run(getenv('BOT_TOKEN'))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
