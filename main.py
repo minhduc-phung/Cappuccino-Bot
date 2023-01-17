@@ -7,10 +7,8 @@ from discord import SlashCommandGroup
 from discord.ext import pages
 from dotenv import load_dotenv
 
-import english_words_service
-import osuAPI_service
-import tenor_API_service
-from text_resources import HELP_TEXTS
+from services import tenor_API_service, osuAPI_service, english_words_service
+from resources.text_resources import HELP_TEXTS
 
 bot = discord.Bot(intents=discord.Intents.all())
 
@@ -124,7 +122,7 @@ async def chatting(ctx):
 
 @bot.command(description="bruh")
 async def bruh(ctx):
-    await ctx.respond(file=discord.File('bruh.gif'))
+    await ctx.respond(file=discord.File('resources/bruh.gif'))
 
 
 def main():
