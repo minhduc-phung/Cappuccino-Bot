@@ -5,8 +5,7 @@ import requests
 from dotenv import load_dotenv
 
 load_dotenv()
-apikey = "LIVDSRZULELA"
-print(apikey)
+apikey = getenv("TENOR_API_KEY")
 lmt = 10
 
 

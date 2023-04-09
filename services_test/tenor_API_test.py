@@ -5,15 +5,13 @@ import requests
 from dotenv import load_dotenv
 
 load_dotenv()
-apikey = "LIVDSRZULELA"
-print(apikey)
+apikey = getenv("TENOR_API_KEY")
 lmt = 10
 
 search_term = "wysi"
 
 r = requests.get(
     "https://g.tenor.com/v1/search?q=%s&key=%s&limit=%s" % (search_term, apikey, lmt))
-print(r.status_code)
 if r.status_code == 200:
     # load the GIFs using the urls for the smaller GIF sizes
     gifs = json.loads(r.content)
