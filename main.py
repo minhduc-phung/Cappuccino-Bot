@@ -8,7 +8,7 @@ from discord.ext import pages
 from dotenv import load_dotenv
 
 from services import tenor_API_service, osuAPI_service, english_words_service
-from resources.text_resources import HELP_TEXTS
+from resources.text_resources import HELP_TEXTS, UNSET_USERNAME_WARNING
 
 bot = discord.Bot(intents=discord.Intents.all())
 
@@ -17,6 +17,7 @@ bot = discord.Bot(intents=discord.Intents.all())
 async def on_ready():
     activity = discord.Activity(name="/help", type=discord.ActivityType.playing)
     await bot.change_presence(status=discord.Status.online, activity=activity)
+
     print('{0.user} is now online.'.format(bot))
 
 
@@ -25,12 +26,12 @@ async def on_member_join(member):
     await member.send("Good morning, " + member.name + "!" + "\nWelcome to the server.")
 
 
-@bot.event
-async def on_message(message):
-    if message.author == bot.user:
-        return
-    if "727" in message.content:
-        await message.channel.send(tenor_API_service.get_random_gif("wysi"))
+#@bot.event
+#async def on_message(message):
+#    if message.author == bot.user:
+#        return
+#    if "727" in message.content:
+#        await message.channel.send(tenor_API_service.get_random_gif("wysi"))
 
 
 @bot.command(description="Send the bot's latency")
@@ -48,7 +49,7 @@ async def cuu(ctx):
     await ctx.respond(HELP_TEXTS.get('vi'))
 
 
-@bot.command(description="Get a random gif from tenor")
+@bot.command(description="Get a random gif from tenor. Yes, I know /tenor exists.")
 async def gif(ctx, search_term: discord.Option(str)):
     await ctx.respond(tenor_API_service.get_random_gif(search_term))
 
@@ -66,8 +67,21 @@ async def roll(ctx, max_range: discord.Option(int, default=100, description="The
 osu = SlashCommandGroup("osu", "osu! related commands")
 
 
+@osu.command(description="Set the osu! username of the user")
+async def set_username(ctx: discord.ApplicationContext, username: discord.Option(str, description="The osu! username")):
+    if osuAPI_service.set_username(ctx.author.id, username):
+        await ctx.respond("Your osu! username has been set to **" + username + "**.", ephemeral=True)
+    else:
+        await ctx.respond("Your osu! username cannot be found or is invalid.", ephemeral=True)
+
+
 @osu.command(description="Get the osu! top plays of a user")
-async def top(ctx: discord.ApplicationContext, username: discord.Option(str, description="The osu! username")):
+async def top(ctx: discord.ApplicationContext, username: discord.Option(str, description="An osu! username", required=False)):
+    if username is None:
+        username = osuAPI_service.get_osu_username(ctx.author.id)
+        if username == "":
+            await ctx.respond(UNSET_USERNAME_WARNING, ephemeral=True)
+            return
     message, pages_to_send = osuAPI_service.get_top_50(username)
     if pages_to_send is None:
         await ctx.respond(message)
@@ -77,26 +91,38 @@ async def top(ctx: discord.ApplicationContext, username: discord.Option(str, des
 
 
 @osu.command(description="Get the osu! most recent play of a user")
-async def recent(ctx: discord.ApplicationContext, username: discord.Option(str, description="The osu! username")):
+async def recent(ctx: discord.ApplicationContext, username: discord.Option(type=str, description="An osu! username.", required=False)):
+    if username is None:
+        username = osuAPI_service.get_osu_username(ctx.author.id)
+        if username == "":
+            await ctx.respond(UNSET_USERNAME_WARNING, ephemeral=True)
+            return
     message, ed = osuAPI_service.get_recent(username)
     if ed == "":
         await ctx.respond(message)
         return
     embed = discord.Embed()
+    embed.title = message
     embed.description = ed
-    await ctx.respond(message, embed=embed)
+    await ctx.respond(embed=embed)
 
 
 @osu.command(description="Get the osu! user's top play")
-async def best(ctx: discord.ApplicationContext, username: discord.Option(str, description="The osu! username")):
+async def best(ctx: discord.ApplicationContext, username: discord.Option(str, description="An osu! username", required=False)):
+    if username is None:
+        username = osuAPI_service.get_osu_username(ctx.author.id)
+        if username == "":
+            await ctx.respond(UNSET_USERNAME_WARNING, ephemeral=True)
+            return
     message, ed, ei = osuAPI_service.get_top_play(username)
     if ed is None:
         await ctx.respond(message)
         return
     embed = discord.Embed()
+    embed.title = message
     embed.description = ed
     embed.set_thumbnail(url=ei)
-    await ctx.respond(message, embed=embed)
+    await ctx.respond(embed=embed)
 
 
 bot.add_application_command(osu)
@@ -106,7 +132,7 @@ bot.add_application_command(osu)
 async def scramble(ctx):
     answer = english_words_service.get_random_lower_word()
     scrambled = english_words_service.scramble_word(answer)
-    await ctx.respond("Unscramble this word: **" + scrambled + "**\n You have 30 seconds.")
+    await ctx.respond("Unscramble this word: **" + scrambled + "**\nYou have 30 seconds.")
     try:
         msg = await bot.wait_for("message", check=lambda m: m.content.lower() == answer, timeout=30)
     except asyncio.TimeoutError:

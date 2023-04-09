@@ -32,4 +32,7 @@ Các câu lệnh hiện đang có (**toàn bộ đầu ra của các câu lệnh
 - **osu recent** [tên người chơi]: (osu!) Trả về lượt chơi gần đây nhất của người chơi được ghi trong lệnh
 '''
 
+UNSET_USERNAME_WARNING = "**You have not set your osu! username!**" \
+                         "\n Use `/osu set_username <username>` to set your username."
+
 HELP_TEXTS = {"en": HELP_TEXT_EN, "vi": HELP_TEXT_VI}

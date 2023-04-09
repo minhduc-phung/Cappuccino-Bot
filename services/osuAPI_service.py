@@ -3,9 +3,52 @@ from discord.ext.pages import Page
 from ossapi import *
 from os import getenv
 from dotenv import load_dotenv
+from os import path
+import json
 
 load_dotenv()
 api = OssapiV2(int(getenv('OSUAPI_ID')), getenv('OSUAPI_TOKEN'))
+_directory_path = path.abspath(".")
+DATA_PATH = _directory_path + "\\data\\osu_usernames.json"
+
+
+def _get_data_from_file() -> dict:
+    with open(DATA_PATH, "r") as file:
+        osu_username_dict = json.load(file)
+    return osu_username_dict
+
+
+def get_osu_username(user_id: int) -> str:
+    osu_username_dict = _get_data_from_file()
+    if str(user_id) not in osu_username_dict:
+        return ""
+    return osu_username_dict[str(user_id)]
+
+
+def set_username(user_id: int, username: str) -> bool:
+
+    # Check if the username can be found in the Bancho database with the search
+    if len(api.search(query=username).users.data) == 0:
+        return False
+
+    # Check if the username is the same as the one found in the Bancho database
+    username_searched = api.search(query=username).users.data[0].username
+    if username_searched != username:
+        return False
+
+    if not path.isfile(DATA_PATH):
+        # Create the file
+        with open(DATA_PATH, "w") as file:
+            json.dump({str(user_id): username}, file, indent=4)
+    else:
+        with open(DATA_PATH, "r") as file:
+            old_username_dict = json.load(file)
+        print(old_username_dict)
+        old_username_dict.update({str(user_id): username})
+        print(old_username_dict)
+        with open(DATA_PATH, "w") as file:
+            json.dump(old_username_dict, file, indent=4)
+    return True
 
 
 def get_top_play(username):
