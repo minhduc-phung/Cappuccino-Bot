@@ -3,3 +3,5 @@
 /venv/Scripts/
 /.env
 /data
+/.idea
+/logs

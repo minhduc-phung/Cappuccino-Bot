@@ -1,6 +1,8 @@
 import asyncio
+import datetime
 import random
 from os import getenv
+import logging
 
 import discord
 from discord import SlashCommandGroup
@@ -10,6 +12,24 @@ from dotenv import load_dotenv
 from services import tenor_API_service, osuAPI_service, english_words_service
 from resources.text_resources import HELP_TEXTS, UNSET_USERNAME_WARNING
 
+# Logging
+# Set the log file name to the current date
+# log_MMDDYYYY.log
+file_name = 'log_{0}.log'.format(datetime.datetime.now().strftime("%m%d%Y"))
+f_handler = logging.FileHandler('.\\logs\\' + file_name)
+f_handler.setLevel(logging.INFO)
+f_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+f_handler.setFormatter(f_formatter)
+c_handler = logging.StreamHandler()
+c_handler.setLevel(logging.INFO)
+c_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+c_handler.setFormatter(c_formatter)
+
+logger = logging.getLogger(__name__)
+logger.addHandler(f_handler)
+logger.addHandler(c_handler)
+logger.setLevel(logging.INFO)
+
 bot = discord.Bot(intents=discord.Intents.all())
 
 
@@ -17,17 +37,25 @@ bot = discord.Bot(intents=discord.Intents.all())
 async def on_ready():
     activity = discord.Activity(name="/help", type=discord.ActivityType.playing)
     await bot.change_presence(status=discord.Status.online, activity=activity)
-
-    print('{0.user} is now online.'.format(bot))
+    logger.info('{0.user} is now online.'.format(bot))
+    # print('{0.user} is now online.'.format(bot))
 
 
 @bot.event
 async def on_member_join(member):
-    await member.send("Good morning, " + member.name + "!" + "\nWelcome to the server.")
+    # Get the server the member joined
+    server = member.guild
+    # Get the server name
+    server_name = server.name
+    # Get the channel to send the message to
+    channel = discord.utils.get(server.channels, name="general")
+    # Send the message
+    await channel.send("Welcome to the server, " + member.name + "!")
+    logger.info("New user joined server \"" + server_name + "\": " + str(member.user))
 
 
-#@bot.event
-#async def on_message(message):
+# @bot.event
+# async def on_message(message):
 #    if message.author == bot.user:
 #        return
 #    if "727" in message.content:
@@ -37,6 +65,7 @@ async def on_member_join(member):
 @bot.command(description="Send the bot's latency")
 async def ping(ctx):
     await ctx.respond(f"Pinged! My latency is **{bot.latency * 1000:.0f}ms**.")
+    logger.warning("Someone pinged the bot. Current latency: " + str(bot.latency * 1000) + "ms")
 
 
 @bot.command(description="Shows the list of commands")
@@ -76,7 +105,8 @@ async def set_username(ctx: discord.ApplicationContext, username: discord.Option
 
 
 @osu.command(description="Get the osu! top plays of a user")
-async def top(ctx: discord.ApplicationContext, username: discord.Option(str, description="An osu! username", required=False)):
+async def top(ctx: discord.ApplicationContext,
+              username: discord.Option(str, description="An osu! username", required=False)):
     if username is None:
         username = osuAPI_service.get_osu_username(ctx.author.id)
         if username == "":
@@ -91,7 +121,8 @@ async def top(ctx: discord.ApplicationContext, username: discord.Option(str, des
 
 
 @osu.command(description="Get the osu! most recent play of a user")
-async def recent(ctx: discord.ApplicationContext, username: discord.Option(type=str, description="An osu! username.", required=False)):
+async def recent(ctx: discord.ApplicationContext,
+                 username: discord.Option(type=str, description="An osu! username.", required=False)):
     if username is None:
         username = osuAPI_service.get_osu_username(ctx.author.id)
         if username == "":
@@ -108,7 +139,8 @@ async def recent(ctx: discord.ApplicationContext, username: discord.Option(type=
 
 
 @osu.command(description="Get the osu! user's top play")
-async def best(ctx: discord.ApplicationContext, username: discord.Option(str, description="An osu! username", required=False)):
+async def best(ctx: discord.ApplicationContext,
+               username: discord.Option(str, description="An osu! username", required=False)):
     if username is None:
         username = osuAPI_service.get_osu_username(ctx.author.id)
         if username == "":
